@@ -1,0 +1,136 @@
+//author : george karystianis
+//these are the rules for the extraction of dose interval from medication prescriptions.
+
+
+provide 'dose_interval';
+
+defDict number = one, two, three, four, five, six, seven, eight, nine, ten,  eleven, twelve,  thirteen,nineteen,fourteen,seventeen,fifteen,sixteen,twenty, 1,2,3,4,5,6,7,8,9,10,11, 12, 13, 14, 15, 16,17,18,19,20;
+
+defSpanType DoseUnit =~ trie caps, capsules, cap, capsule, sachet, sachets, drop, drops, dr,drps, drp, ampoule, ampoules, amp, amps, suppositor, suppository, pill, pills, blister, blisters, spray, sprays, tab, tabs, tablets, tablet,puff, puffs,puf, pufs, ml, mls, millilitres, millilitre, grams, gram, gms, g, gm, mcg, microgram, micrograms, micro gram, micro grams, milligram, milligrams, milli gram, milli grams, mg, mgs,inh, capful, vial, vials, patch, patches, bolus, boluses, lozenge, lozenges, units, unit, milliliter, milliliters, ounce, ounces,pack, packet, packs, packets, pastilles, pastille;
+
+defDict mini = or, -, to, /;
+
+defDict spoon = spoons, spoon, spoonsful, spoonful, spoonfuls;
+
+defDict past_verbs = applied, sprayed, inserted, sucked, inhaled, used, instiled, taken, chewed, injected, put;
+
+defDict verb = take, insert, suck, inhale,use, instil, inject, add, chew, put; 
+
+defSpanType period =~ trie morning, evening, afternoon, dawn, dusk, night, noon, eve, mor, teatime, tea time, day, bedtime, am, pm, midday, midnight, morne, nocte, noct, mane, morn, dinner time, dinnertime, lunchtime, lunch time, bed; 
+
+defDict time = times, time;
+
+defDict every = a, an, each, every, per, /,at;
+
+defDict when = at, in, before, after, during;
+
+defDict small = mane, when,as, if, into, to ;
+
+defDict timeUnit = minute, minutes, min, hour, hours, day, days, week, weeks, wk, wks, month, months, year, years, midday, mins, fortnight;
+
+defDict timeUnitLy = hourly, daily, nightly, weekly, wkly, biweekly, monthly, bimonthly, hrly, hly, dly, hy, mnthly, mthly, yearly, yrly, wly, weekley, fortnightly;
+
+defDict ordNumber = first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth;
+
+defDict ratio = half, quarter; //halves, quarters
+
+defDict ml = ml, mls;
+
+defDict dose = dose, doses;
+
+defDict timeAbbrev = d, h, hs, od, day, week, pm, am, ac, hrs;
+
+defSpanType alt =~ trie alternate, alt, dieb alt, qad, other;
+
+defSpanType latin =~ trie qwk, qqh, sid, bis, bd, qad, dieb alt, eod, qh,td, bid, tid, tds, q1h,qhs,qam,qpm,biw, tiw, t.i.w, qd, qid, alt h, opd, om,on, nocte, qds, b.d, s.i.d, q.w.k, q.q.h, b.i.s, b.h, q.a.d, e.o.d, q.h, b.i.d, t.i.d, t.d.s, q.1.h, q.d, q.i.d, o.p.d, o.m, o.n,q.d.s,q.2.h, q2h, qod, q.o.d,q.h.s, q.h, qh, hs, h.s, mane, pm, p.m, bt, b.t, am, a.m, q1d, q.1.d, b.d.s, bds, b.d., s.i.d., q.w.k., q.q.h., b.i.s., b.h., q.a.d., e.o.d., q.h., b.i.d., t.i.d., t.d.s., q.1.h., q.d., q.i.d., o.p.d., o.m., o.n.,q.d.s.,q.2.h.,q.o.d.,q.h.s., q.h.,h.s.,p.m.,b.t., a.m.,q.1.d., b.d.s., q6h, q.6.h., q3h, q4h, q5h, q7h, q8h, q.3.h., q.4.h., q.5.h., q.7.h., q.8.h.;
+
+defDict hour = h, hour, hours;
+
+defSpanType uber_number =:
+...[a(number)]...|| 
+...[a(number) a(mini) a(number)]...;
+
+defSpanType numberOrInterval =: 
+... [ a(number) ] ... ||
+... [ a(ordNumber) ] ... ||
+... [ re('^[0-9]{1,3}$') ] ... ||
+... [ @uber_number ] ...;
+
+defSpanType times =: 
+... [ eq('once') ] ... ||
+... [ eq('twice') a(time)?] ... ||
+... [eq('up')? eq('to')? eq('upto')? @numberOrInterval a(time) ] ... ; // this could replace the freq and the number of times
+
+defSpanType perTimeUnit =: 
+... [ a(every) @numberOrInterval? any? a(timeUnit) ] ... || 
+... [ @period ] ... || 
+... [ a(every) any?   @period ] ... || 
+... [ a(when) any? @period ] ... || 
+... [ @times ] ... || 
+... [ @times a(every)? a(timeUnit) ] ... || 
+... [ @times? a(timeUnitLy) ] ...;
+
+defSpanType freqAbbrevHour =: 
+... [ eq('q') eq('.')? re('^[0-9]{1,3}$') a(hour) eq('.')? ] ... || 
+... [ eq('q') eq('.')? re('^[0-9]{1,3}$') eq('-') re('^[0-9]{1,3}$') a(hour) eq('.')? ] ... || 
+... [ eq('q') eq('.')? @numberOrInterval ai(hour) eq('.')? ] ... ;
+
+defSpanType allAbbrev =: 
+... [ @latin ] ... ||
+... [ eq('q') eq('.')? a(timeAbbrev) ] ... ||
+... [ eq('q') eq('-') a(timeAbbrev) ] ... ||
+... [ eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('a.m.') ] ... ||
+... [ eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('p.m.') ] ... ||
+... [ eq('q') eq('.') eq('a') eq('.') eq('c') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('o') eq('.') eq('d') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('h') eq('.') eq('s') eq('.') ] ... ||
+... [ eq('b') eq('.') eq('i') eq('.') eq('w') eq('.') ] ... ||
+... [ eq('q') eq('.')? @numberOrInterval ] ... ||
+... [ eq('q') eq('.')? @numberOrInterval a(timeUnit) ] ... ||
+... [ eq('every') @numberOrInterval a(timeUnit) ] ... ||
+... [ @numberOrInterval eq('per') a(timeUnit) ] ... ||
+... [ @freqAbbrevHour ] ... ||
+... [ re('^[btq]{1,1}$') eq('.')? eq('i') eq('.')? eq('d') eq('.')? ] ... ||
+... [ re('^[btq]{1,1}$') eq('.')? eq('d') eq('.')? ] ...;
+
+defSpanType s =: ...[eq('(')eq('s')eq(')')]...;
+
+defSpanType dose_interval=:
+...[a(when) @period a(every) eq('other') @period ]...||
+...eq('thisisthebeginning') [a(number) a(timeUnit)]...||
+...eq('thisisthebeginning') a(verb)? re('[0-9]')eq('.')re('[0-9]') [a(number) eq('x') a(timeUnit)]...||
+...eq('thisisthebeginning') a(verb)? re('[0-9]')eq('.')re('[0-9]') [a(number) eq('x') a(timeUnitLy)]...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number) eq('x') a(timeUnit)]...|| 
+...eq('thisisthebeginning') a(verb)? a(number) [a(number) eq('x') a(timeUnitLy)]...|| 
+...eq('thisisthebeginning') a(verb)? @uber_number [@times? a(every) @period]...||
+...eq('thisisthebeginning') eq('change') a(every) [re('[0-9]')] a(hour)...||
+...eq('thisisthebeginning') [@uber_number @period]...||
+...eq('thisisthebeginning') @uber_number eq('x') [a(timeUnitLy)]...||
+...eq('thisisthebeginning') @uber_number any eq('and')? @uber_number [any? @uber_number a(timeUnit)]...||
+...[a(every) a(number) a(timeUnit)]...||
+...[@times a(when) a(timeUnit)]...||
+...[@times eq('aday')]...||
+...[@times eq('/')re('^day')]...||
+...[@times eq('or') @times a(timeUnitLy)]...||
+...[@times eq('or') @times a(every) a(timeUnit)]...||
+...[eq('every') eq('other') a(timeUnit)]...||
+...eq('every') [a(number) eq('/') eq('52')]...||
+...a(number) a(every) [a(number) eq('/')eq('52')]...|| 
+...[a(number) eq('/')eq('52')]...|| 
+...[a(number) eq('/') eq('12')]...||
+...[a(number) eq('/') eq('7')]...||
+...[a(number) a(mini)? a(number)? @alt eq('.')? a(timeUnit)]...|| 
+...[eq('each') eq('other') a(timeUnit)]...||
+...[eq('every') eq('other') @period]...||
+...[eq('each') eq('other') @period]...||
+...eq('thisisthebeginning') [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^(qwk|qqh|sid|bis|qad|dieb|alt|eod|qh|td|bd|bid|tid|tds|q1h|qhs|qd|qid|alt\sh|opd|om|on|nocte|qds|b.d|s.i.d|q.w.k|q.q.h|b.i.s|b.h|q.a.d|e.o.d|q.h|b.i.d|t.i.d|t.d.s|q.1.h|q.d|q.i.d|o.p.d|o.m|o.n|q.d.s|bds|b.d.s|q.2.h|q2h|qod|q.o.d|q.h.s|q.h|hs|h.s|mane|pm|p.m|bt|b.t|am|a.m|q1d|q.1.d|tiw|t.i.w)')]...||
+...[@allAbbrev]...||
+...[@freqAbbrevHour]...||
+...[@perTimeUnit]...||
+...eq('x')[eq('fortnight')]...;

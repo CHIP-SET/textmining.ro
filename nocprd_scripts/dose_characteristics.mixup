@@ -1,0 +1,6 @@
+// author: george karystianis
+
+require 'dose_number', '/var/odin/work/year 4/project/nocprd_scripts/dose_number3.mixup';
+require 'dose_unit', '/var/odin/work/year 4/project/nocprd_scripts/dose_unit.mixup';
+require 'frequencyphase', '/var/odin/work/year 4/project/nocprd_scripts/frequency_phase.mixup';
+require 'dose_interval', '/var/odin/work/year 4/project/nocprd_scripts/dose_interval.mixup'

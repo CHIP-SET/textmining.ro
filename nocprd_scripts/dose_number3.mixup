@@ -1,0 +1,570 @@
+//author : george karystianis
+//date : 28/11/2012
+
+provide 'dose_number';
+
+defDict number = one, two, three, four, five, six, seven, eight, nine, ten,  eleven, twelve,  thirteen,nineteen,fourteen,seventeen,fifteen,sixteen,twenty, 1,2,3,4,5,6,7,8,9,10,11, 12, 13, 14, 15, 16,17,18,19,20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 40, 50, 60, 70, 80, 90, 100, 500, 1000;
+
+defSpanType DoseUnit =~ trie caps, capsules, cap, capsule, sachet, sachets, drop, drops, dr,drps, drp, ampoule, ampoules, amp, amps, suppositor, suppository, pill, pills, blister, blisters, spray, sprays, tab, tabs, tablets, tablet,puff, puffs,puf, pufs, ml, mls, millilitres, millilitre, grams, gram, gms, g, gm, mcg, microgram, micrograms, micro gram, micro grams, milligram, milligrams, milli gram, milli grams, mg, mgs,inh, capful, vial, vials, patch, patches, bolus, boluses, lozenge, lozenges, milliliter, milliliters, ounce, ounces, pack, packet, packs, packets, unit, units, pastilles, pastille;// pre, per rectum, per vagina, pv, 
+
+defDict roman = i, ii, iii, iv, v, vi, vii, viii;
+
+defDict mini = or, -, to, /;
+
+defSpanType meal =~ trie meal, meals, food, breakfast, lunch, dinner, supper, main meal, evening meal;
+
+defDict spoon = spoons, spoon, spoonsful, spoonful, spoonfuls;
+
+defDict past_verbs = applied, sprayed, inserted, sucked, inhaled, used, instilled, taken, chewed, injected, put;
+
+defDict verb = put, take, insert, suck, inhale, use, instil, inject, add, chew; // have no spray here since it is dose unit and could lead to false positives
+
+defSpanType period =~ trie morning, evening, afternoon, dawn, dusk, night, noon, eve, mor, teatime, tea time, day, bedtime, am, pm, midday, midnight, morne, nocte, noct, mane, morn, dinner time, dinnertime, lunchtime, lunch time, bed; 
+
+defDict every = a, an, each, every, per;
+
+defDict time = times, time;
+
+defDict when = at, in, before, after, during;
+
+defDict botheverywhen = at, in, before, after, during,a, an, each, every, per;
+
+defDict small = mane, when,as, if, into, to ;
+
+defDict timeUnit = minute, minutes, min, hour, hours, hrs, hr, day, days, week, weeks, wk, wks, month, months, year, years, midday, yrs, fortnight;
+
+defDict timeUnitLy = hourly, daily, nightly, weekly, wkly, biweekly, monthly, bimonthly, hrly, hly, dly, hy, mnthly, mthly, yearly, yrly, wly, weekley, fortnightly;
+
+defDict ordNumber = first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth;
+
+defDict grammaria = mg, mgs, grams, gram, grms, grm, mcg, mcgs, micrograms, microgram, milligram, milligrams, gms, gm, g;
+
+defDict ratio = half, quarter; //halves, quarters
+
+defDict ml = ml, mls, msl;
+
+defDict dose = dose, doses;
+
+defSpanType uber_number =:
+...[a(number)]...|| 
+...[re('[0-9]')eq('.')re('[0-9]') a(mini)? re('[0-9]')?eq('.')?re('[0-9]')? a(number)]...||
+...[a(number) a(mini) a(number)]...;
+
+defSpanType numberOrInterval =: 
+... [ a(number) ] ... ||
+... [ a(ordNumber) ] ... ||
+... [ re('^[0-9]{1,3}$') ] ... ||
+... [ @uber_number ] ...;
+
+defSpanType times =: 
+... [ eq('once') ] ... ||
+... [ eq('twice') ] ... ||
+... [ eq('thrice') ] ... ||
+... [eq('up')? eq('to')? eq('upto')? @numberOrInterval a(time) ] ... ; // this could replace the freq and the number of times
+
+defSpanType perTimeUnit =: 
+//... [ a(every) a(timeUnit) ] ... || 
+... [ a(every) @numberOrInterval? any? a(timeUnit) ] ... || 
+... [ @period ] ... || 
+... [ a(every) any?   @period ] ... || 
+... [ a(when) any? @period ] ... || 
+... [ @times ] ... || 
+... [ @times a(every)? a(timeUnit) ] ... || 
+... [ @times? a(timeUnitLy) ] ...;
+
+defSpanType asNeeded =: 
+... [ eq('prn') ] ... ||
+... [ eq('pro re nata') ] ... ||
+... [ eq('sos') ] ... ||
+... [ eq('sit') ] ... ||
+... [ eq('siop') ] ... ||
+... [ eq('si opus sit') ] ... ||
+... [ eq('p') eq('.')? eq('r') eq('.')? eq('n') eq('.')? ] ... ||
+... [ eq('as') eq('needed') ] ...||
+... [ eq('as') eq('required') ] ...||
+... [ eq('as') eq('reqd') ] ...||
+... [ eq('as') eq('req') ] ...||
+... [ eq('as') eq('necessary') ] ...||
+... [ eq('if') eq('needed') ] ...||
+... [ eq('if') eq('required') ] ...||
+... [ eq('if') eq('reqd') ] ...||
+... [ eq('if') eq('req') ] ...||
+... [ eq('if') eq('necessary') ] ...||
+... [ eq('when') eq('needed') ] ...||
+... [ eq('when') eq('req') ] ...||
+... [ eq('when') eq('necessary') ] ...||
+... [ eq('when') eq('reqd') ] ...||
+... [ eq('when') eq('required') ] ...;
+
+defSpanType half =:
+...[eq('&') eq('a') eq('half')]...||
+...[eq('&') eq('half')]...||
+...[eq('and') eq('a') eq('half')]...||
+...[eq('and') eq('half')]...;
+
+defSpanType extra =:
+...[eq('to') eq('one')]...||
+...[eq('to') eq('1')]...||
+...[eq('or') eq('one')]...||
+...[eq('or') eq('1')]...;
+
+defSpanType latin =~ trie qwk, qqh, sid, bis, bd, qad, dieb alt, eod, qh,td, bid, od, tid, tds, q1h,qhs,qam,qpm,biw, tiw, t.i.w, qd, qid, alt h, opd, op, om,on, nocte, qds, b.d, s.i.d, q.w.k, q.q.h, b.i.s, b.h, q.a.d, e.o.d, q.h, b.i.d, o.d, t.i.d, t.d.s, q.1.h, q.d, q.i.d, o.p.d, o.p, o.m, o.n,q.d.s,q.2.h, q2h, qod, q.o.d,q.h.s, q.h, qh, hs, h.s, mane, pm, p.m, bt, b.t, am, a.m, q1d, q.1.d, b.d.s, bds, b.d., s.i.d., q.w.k., q.q.h., b.i.s., b.h., q.a.d., e.o.d., q.h., b.i.d., o.d., t.i.d., t.d.s., q.1.h., q.d., q.i.d., o.p.d., o.p., o.m., o.n.,q.d.s.,q.2.h.,q.o.d.,q.h.s., q.h.,h.s.,p.m.,b.t., a.m.,q.1.d., b.d.s., q6h, q.6.h., q3h, q4h, q5h, q7h, q8h, q.3.h., q.4.h., q.5.h., q.7.h., q.8.h.;
+
+defDict hour = h, hour, hours;
+
+defSpanType freqAbbrevHour =: 
+... [ eq('q') eq('.')? re('^[0-9]{1,3}$') a(hour) eq('.')? ] ... || 
+... [ eq('q') eq('.')? re('^[0-9]{1,3}$') eq('-') re('^[0-9]{1,3}$') a(hour) eq('.')? ] ... || 
+... [ eq('q') eq('.')? @numberOrInterval ai(hour) eq('.')? ] ... ;
+
+defDict timeAbbrev = d, h, hs, od, day, week, pm, am, ac, hrs;
+
+defSpanType allAbbrev =: 
+... [ @latin ] ... ||
+... [ eq('q') eq('.')? a(timeAbbrev) ] ... ||
+... [ eq('q') eq('-') a(timeAbbrev) ] ... ||
+... [ eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('a.m.') ] ... ||
+... [ eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('p.m.') ] ... ||
+... [ eq('q') eq('.') eq('a') eq('.') eq('c') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('o') eq('.') eq('d') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('h') eq('.') eq('s') eq('.') ] ... ||
+... [ eq('b') eq('.') eq('i') eq('.') eq('w') eq('.') ] ... ||
+... [ eq('q') eq('.')? @numberOrInterval ] ... ||
+... [ eq('q') eq('.')? @numberOrInterval a(timeUnit) ] ... ||
+... [ eq('every') @numberOrInterval a(timeUnit) ] ... ||
+... [ @numberOrInterval eq('per') a(timeUnit) ] ... ||
+... [ eq('q') eqi('.')? @CD ] ... ||
+... [ @freqAbbrevHour ] ... ||
+... [ re('^[btq]{1,1}$') eq('.')? eq('i') eq('.')? eq('d') eq('.')? ] ... ||
+... [ re('^[btq]{1,1}$') eq('.')? eq('d') eq('.')? ] ...;
+
+defSpanType s =: ...[eq('(')eq('s')eq(')')]...;
+
+defSpanType dose_unit =:
+...[@DoseUnit]...;
+
+defSpanType dose_number =:
+...a(number) eq('x') [a(number) eq('x') a(number) a(ml)]...||
+...[a(number) eq('x') a(number) a(ml)]...||
+...[a(number)] eq('x') re('[0-9]') re('^hly')...|| 
+...[a(number) eq('.') a(number)] eq('x') re('[0-9]') re('^hly')...|| 
+...[@uber_number re('[0-9]')eq('-')?eq('.')?re('[0-9]')? a(ml)] a(spoon)...||
+...a(verb) [@uber_number] eq('.')? a(dose)...||
+...[re('[0-9]') eq('.')? re('[0-9]')? eq('x') re('[0-9]') eq('.')? re('[0-9]')? a(ml)]...|| 
+...re('[0-9]') eq('.')? re('[0-9]')? eq('x') [re('[0-9]') eq('.')? re('[0-9]')? eq('x') re('[0-9]') eq('.')? re('[0-9]')? a(ml)]...|| 
+//...[a(number) a(number) a(ml)]...||
+
+...eq('thisisthebeginning') eq('mdu') eq('mitte') [@uber_number] @latin...||
+...eq('thisisthebeginning') a(verb)? @perTimeUnit [re('[0-9]')eq('-')?eq('.')?re('[0-9]')? a(ml)] ...||
+...eq('thisisthebeginning') [re('[0-9]')eq('-')?eq('.')?re('[0-9]')? a(ml) a(mini) re('[0-9]')eq('-')?eq('.')?re('[0-9]')? a(ml)]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^mg')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^gm')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^microgram')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^mcg')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^microgram')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^p')] @latin...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^d')] @latin...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^puf')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^cap')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^sachet')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^dr')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^amp')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^suppos')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^pill')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^blister')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^pastille')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^spr')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^tab')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^millil')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^gram')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^g')]...|| // **** new
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^pv')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^inh')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^vial')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^patch')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^bolus')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^lozenge')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^ounce')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^ml')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^msl')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^pack')]...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?  re('^unit')]...||
+
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qds')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qwk')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qqh')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^sid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^bis')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^bd')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qad')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^alt')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^eod')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qh')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^td')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^bid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^od')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^tid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^tds')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q1h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qhs')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qam')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qpm')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qd')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^opd')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^op')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^om')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^on')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^noct')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^qds')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q6h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.6.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.7.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q7h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q8h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.8.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q4h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.4.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.5.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q5h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q3h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.3.h')...||
+
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qds')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qwk')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qqh')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^sid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^bis')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^bd')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qad')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^alt')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^eod')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qh')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^td')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^bid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^od')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^tid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^tds')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q1h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qhs')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qam')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qpm')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qd')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qid')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^opd')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^op')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^om')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^on')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^noct')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^qds')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q6h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.6.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.7.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q7h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q8h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.8.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q4h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.4.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.5.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q5h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q3h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.3.h')...||
+
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^b.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^s.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.w.k')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.q.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^b.i.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.a.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^e.o.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^b.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^t.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^t.d.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.1.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.p.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.p')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.m')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.d.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.h.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.p.m')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.n')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.a.m')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^t.d')...||
+
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^b.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^s.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.w.k.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.q.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^b.i.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.a.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^e.o.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^b.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^t.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^t.d.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.1.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.p.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.p.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.m.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.d.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.h.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.p.m.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^o.n.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.a.m.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^t.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.6.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.7.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.8.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.4.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.5.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] re('^q.3.h.')...||
+
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^b.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^s.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.w.k')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.q.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^b.i.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.a.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^e.o.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^b.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^t.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^t.d.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.1.h')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.i.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.p.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.p')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.m')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.d.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.h.s')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.p.m')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.n')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.a.m')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^t.d')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.6.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.7.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.8.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.4.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.5.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.3.h.')...||
+
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^b.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^s.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.w.k.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.q.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^b.i.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.a.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^e.o.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^b.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^t.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^t.d.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.1.h.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.i.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.p.d.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.p.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.m.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.d.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.h.s.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.p.m.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^o.n.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^q.a.m.')...||
+...eq('thisisthebeginning') any? [re('[0-9]')eq('or')re('[0-9]')?] re('^t.d.')...||
+
+...eq('thisisthebeginning') any a(verb) [@uber_number] a(when)...||
+...eq('thisisthebeginning') any a(verb) [@uber_number] a(small)...||
+...eq('thisisthebeginning') any a(verb) [@uber_number] @perTimeUnit...||
+...eq('thisisthebeginning') any{1,4} [@uber_number] @DoseUnit...||
+...eq('thisisthebeginning') any{1,4} [@uber_number] @DoseUnit...|| 
+
+...eq('thisisthebeginning') eq('to') eq('be') [eq('applied')]...||
+...eq('thisisthebeginning') eq('to') eq('be') eq('applied') [@times]...||
+...eq('thisisthebeginning') eq('to') eq('be') any [@uber_number] @times...||
+...eq('thisisthebeginning') eq('/')? eq('/')? [@uber_number] a(when) @period...||
+...eq('thisisthebeginning') eq('/')? eq('/')? [@uber_number] a(every) @period...||
+...eq('thisisthebeginning') [eq('apply')]...|| // good rules but weird - if I keep this one on, then the rest are not needed
+
+// these ones here are the ones that I pick up the frequency of the spoons i.e., one X 5ml. now i am picking up the 5ml only. if I want to change it i just put [] in @uber_number ^
+...eq('thisisthebeginning') any{0,2} [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^ml')]...||
+...eq('thisisthebeginning') any{0,2} [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^msl')]...||
+...eq('thisisthebeginning') any{0,2} [@uber_number eq('x') re('[0-9]') eq('.')? re('[0-9]')? re('^ml')]...||
+...eq('thisisthebeginning') any{0,2} [@uber_number eq('x') re('[0-9]') eq('.')? re('[0-9]')? re('^msl')]...||
+...eq('thisisthebeginning') any{0,2} [@uber_number eq('x') re('[0-9]') eq('.')? re('[0-9]')? a(ml)]...||
+...eq('thisisthebeginning') any{0,2} [@uber_number eq('or') @uber_number] @DoseUnit @s?...||
+...eq('thisisthebeginning') any{0,2} [@uber_number eq('to') @uber_number] @DoseUnit @s?...||
+...eq('thisisthebeginning') eq('x') [@uber_number]...||
+
+...eq('thisisthebeginning') a(verb)? [@DoseUnit] @s? @times...||
+...eq('thisisthebeginning') a(verb)? [eq('once')] a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [eq('twice')] a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [eq('thrice')] a(timeUnitLy)...||
+ ...eq('thisisthebeginning') a(verb)? [a(roman)] @DoseUnit...||
+...eq('thisisthebeginning') a(verb)? [a(roman)] eq('immediately')...||
+...eq('thisisthebeginning') a(verb)? [a(number) a(number) @period eq('and')? a(number) a(number) @period] ...||
+...eq('thisisthebeginning') a(verb)? any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] a(timeUnit)...|| 
+...eq('thisisthebeginning') a(verb)? any? [re('[0-9]')eq('-')?eq('.')?re('[0-9]')?] a(every) a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [eq('up') eq('to') @uber_number] @DoseUnit...||
+...eq('thisisthebeginning') a(verb)? [eq('up') eq('to') @uber_number] @allAbbrev...||
+...eq('thisisthebeginning') a(verb)? [eq('up') eq('to') @uber_number] @perTimeUnit...||
+...eq('thisisthebeginning') a(verb)? [eq('up') eq('to') @uber_number] a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [eq('up') eq('to') @uber_number] a(small)...||
+...eq('thisisthebeginning') a(verb)? [eq('up') eq('to') @uber_number] a(when)...|| 
+
+...eq('thisisthebeginning') a(verb)? [@uber_number any? eq('then') @uber_number]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number any @uber_number] eq('after')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number any eq('and') @uber_number] any? @perTimeUnit...||
+...eq('thisisthebeginning') a(verb)? [@uber_number any eq('and') @uber_number] any? @uber_number a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number a(every) @period @uber_number a(every) @period]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number a(when) eq('the')? @period @uber_number @period]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number @period @uber_number a(when) eq('the')? @period]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number a(every) @period eq('and')? @uber_number a(when) any? @period]...||  
+...eq('thisisthebeginning') a(verb)? [@uber_number a(every) a(timeUnit) @uber_number a(every) eq('other') a(timeUnit)]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number a(when) any? @period eq('and')? @uber_number a(when)? any? @period]...|| 
+
+...eq('thisisthebeginning') a(verb)? [@uber_number] any{0,2} @times...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^daily')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^dly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^wkly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^weekly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^monthly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^hourly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^nightly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^biweekly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^fortnightly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^hrly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^hly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('^a')...||
+
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('[0-9]') eq('-')? eq('.')? re('[0-9]')? a(timeUnitLy) ...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('[0-9]') eq('-')? eq('.')? re('[0-9]')? eq('h')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('[0-9]') eq('-')? eq('.')? re('[0-9]')? a(small)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('[0-9]') eq('-')? eq('.')? re('[0-9]')? a(botheverywhen)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] re('[0-9]') eq('-')? eq('.')? re('[0-9]')? @period...||
+...eq('thisisthebeginning') a(verb)  [@uber_number] ... || // *** new - very generic - may kill everything else
+
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^mg')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^gram')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^grms')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^mcg')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^microgram')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^milligram')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? re('^gm')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? re('[0-9]') eq('.')? re('[0-9]')? a(grammaria)]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? @uber_number re('[0-9]')eq('.')?re('[0-9]')? re('^ml')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? @uber_number re('[0-9]')eq('.')?re('[0-9]')? re('^msl')]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number? eq('x')? @uber_number re('[0-9]')eq('.')?re('[0-9]')? a(ml)]...||
+//...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') eq('/')? a(every)? @period...||
+//...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') eq('/')? a(timeUnit)...||
+//...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') eq('/')? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [a(number)] a(number) re('^hrly')...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('.') a(number)] a(number) re('^hrly')...||
+...eq('thisisthebeginning') a(verb)? [a(number)] a(number) re('^hly')...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('.') a(number)] a(number) re('^hly')...||
+...eq('thisisthebeginning') a(verb)? [a(number)] a(number) re('^hourly')...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('.') a(number)] a(number) re('^hourly')...||
+...eq('thisisthebeginning') a(verb)? [a(number)] a(number) eq('x') eq('/')? a(every)? @period...||
+...eq('thisisthebeginning') a(verb)? [a(number)] a(number) eq('x') eq('/')? a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [a(number)] a(number) eq('x') eq('/')? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [re('[0-9]')eq('.')re('[0-9]')] a(number) eq('x') a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [re('[0-9]')eq('.')re('[0-9]')] a(number) eq('x') a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('.') a(number)] a(number) eq('x') eq('/')? a(every)? @period...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('.') a(number)] a(number) eq('x') eq('/')? a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('.') a(number)] a(number) eq('x') eq('/')? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') re('[0-9]')re('^hly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('dissolved')...|| 
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('in')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('at')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('up') eq('to')...|| 
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('/')? a(timeUnit)...|| 
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('not') eq('more')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('with') any?...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('to') eq('be')...|| 
+...eq('thisisthebeginning') a(verb)? [a(every) a(number) a(timeUnit)]...||
+
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(past_verbs)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(dose)? a(small)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(dose)? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(dose)? a(when)...||
+...eq('thisisthebeginning') eq('spray') [@uber_number] a(dose)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(verb)? a(botheverywhen) any...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(mini)? @allAbbrev...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(number) a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] a(time) a(number)...||
+
+...eq('thisisthebeginning') a(verb)? [@uber_number] @allAbbrev...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @period...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @uber_number a(small)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @uber_number a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @uber_number a(when)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @DoseUnit @s?...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @times? a(small)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @times? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @times? a(botheverywhen)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] @times...|| 
+...eq('thisisthebeginning') a(verb)? [@uber_number] @asNeeded...||
+
+...eq('thisisthebeginning') a(verb)? [@uber_number a(every) @period eq('and')? @uber_number]...|| 
+...eq('thisisthebeginning') a(verb)? [@uber_number eq('and') @uber_number] a(every)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number any eq('and')? eq('then') @uber_number]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number any @meal eq('and') @uber_number any @period? @meal]...||
+
+...eq('thisisthebeginning') [a(verb) a(every) @uber_number a(timeUnit)]...
+...eq('thisisthebeginning') [a(number)] a(every) a(number) eq('/')eq('52')...|| 
+...eq('thisisthebeginning') [a(number)] a(every) a(number) eq('/')eq('12')...|| 
+...eq('thisisthebeginning') [a(number)] a(every) a(number) eq('/')eq('7')...|| 
+...eq('thisisthebeginning') a(verb)? [a(number) @times a(botheverywhen) @period a(when) @meal eq('and')? a(number) a(botheverywhen) @period]...||
+...eq('thisisthebeginning') a(verb)? [a(number) a(mini) a(number) @times a(botheverywhen) @period a(when) @meal eq('and')? a(number) a(botheverywhen) @period]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number @DoseUnit any{0,2} a(when) any? @period eq('and')? @uber_number a(when) ]...||
+...eq('thisisthebeginning') a(verb)? [@uber_number @DoseUnit any{0,2} a(every) any? @period eq('and')? @uber_number a(every)]...||
+...eq('thisisthebeginning') a(verb)  [@uber_number @period @uber_number] @period...||
+...eq('thisisthebeginning') [@uber_number] a(verb)...||
+
+...eq('thisisthebeginning') eq('max') [a(number)] a(timeUnitLy)...||
+...eq('thisisthebeginning') [a(number) @DoseUnit ]...||
+
+// quarter frequency
+...eq('thisisthebeginning') a(verb)? a(number) [eq('quarter')] any{0,2} @DoseUnit? @perTimeUnit...||
+...eq('thisisthebeginning') a(verb)? eq('a') [eq('quarter')] @perTimeUnit...||
+...eq('thisisthebeginning') a(verb)? [eq('quarter')] @DoseUnit...||
+...eq('thisisthebeginning') a(verb)? [eq('quarter') eq('half')? @extra]...||
+...eq('thisisthebeginning') a(verb)? [eq('quarter')] @times...||
+...eq('thisisthebeginning') a(verb)? [eq('quarter')] eq('at')...||
+
+// half doses
+...eq('thisisthebeginning') a(verb)? [a(number) eq('and')? eq('a')? eq('1')eq('/')eq('2')] @DoseUnit...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('and')? eq('a')? eq('1')eq('/')eq('2')] a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('and')? eq('a')? eq('1')eq('/')eq('2')] @latin...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('and')? eq('a')? eq('1')eq('/')eq('2')] @period...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('and')? eq('a')? eq('1')eq('/')eq('2')] a(botheverywhen)...||
+...eq('thisisthebeginning') a(verb)? [eq('half')] a(botheverywhen)...||
+...eq('thisisthebeginning') a(verb)? [eq('half')] @DoseUnit @s? ...|| 
+...eq('thisisthebeginning') a(verb)? [eq('1')eq('/')eq('2') a(mini) a(number)]...||
+...eq('thisisthebeginning') a(verb)? eq('a')? [eq('half') @extra?] @times...||
+...eq('thisisthebeginning') a(verb)? eq('a')? [eq('half') @extra?] eq('a')? any? @DoseUnit @s?...|| 
+...eq('thisisthebeginning') a(verb)? [a(number) eq('or') eq('half')] @DoseUnit? @s? a(every) @period...||
+...eq('thisisthebeginning') a(verb)? [a(number) eq('half')]...||
+...eq('thisisthebeginning') a(verb)? [a(number) @half]...||
+
+...[@uber_number] eq('x') eq('fortnight')...||
+
+///uber new rule - it may help me but it could potentially generate lots of false positives
+...a(verb) eq('up') eq('to') [@uber_number eq('to') @uber_number] @DoseUnit...||
+...a(verb) [a(number)] eq('(')?a(number)?eq(')')? @DoseUnit...;
+

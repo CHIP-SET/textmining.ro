@@ -1,0 +1,43 @@
+//author: george karystianis
+
+// date : 19/11/2012
+
+provide 'dose_unit';
+
+defSpanType DoseUnit =~ trie caps, capsules, cap, capsule, sachet, sachets, drop, drops, dr, drps, drp, ampoule, ampoules, amp, amps, suppositor, suppository, pill, pills, blister, blisters, spray, sprays, tab, tabs, tablets, tablet,puff, puffs, puff,pufs, ml, mls, millilitres, millilitre, grams, gram, gms, g, gm, mcg, microgram, micrograms, micro gram, micro grams, milligram, milligrams, milli gram, milli grams, mg, mgs, inh, capful, vial, vials, patch, patches, bolus, unit, units, boluses, lozenge, lozenges, milliliter, milliliters, ounce, ounces, pack, packs, packet, packets, pastilles, pastille; //pre, per rectum, per vagina, pv, 
+
+
+defSpanType latin =~ trie qwk, qqh, sid, bis, bd, qad, dieb alt, eod, qh,td, bid, od, tid, tds, q1h,qhs,qam,qpm,biw, tiw, t.i.w, qd, qid, alt h, opd, op, om,on, nocte, qds, b.d, s.i.d, q.w.k, q.q.h, b.i.s, b.h, q.a.d, e.o.d, q.h, b.i.d, o.d, t.i.d, t.d.s, q.1.h, q.d, q.i.d, o.p.d, o.p, o.m, o.n,q.d.s,q.2.h, q2h, qod, q.o.d,q.h.s, q.h, qh, hs, h.s, mane, pm, p.m, bt, b.t, am, a.m, q1d, q.1.d, b.d.s, bds, b.d., s.i.d., q.w.k., q.q.h., b.i.s., b.h., q.a.d., e.o.d., q.h., b.i.d., o.d., t.i.d., t.d.s., q.1.h., q.d., q.i.d., o.p.d., o.p., o.m., o.n.,q.d.s.,q.2.h.,q.o.d.,q.h.s., q.h.,h.s.,p.m.,b.t., a.m.,q.1.d., b.d.s., q6h, q.6.h., q3h, q4h, q5h, q7h, q8h, q.3.h., q.4.h., q.5.h., q.7.h., q.8.h.; // improved latin abbreviations not tested :P
+
+
+defSpanType dose_unit =:
+...re('[0-9]') [re('^ml')]...||
+...re('[0-9]') [re('^msl')]...|| // this is for the mispellings
+...re('[0-9]') [re('^puf')]...||
+...re('[0-9]') [re('^cap')]...||
+...re('[0-9]') [re('^sachet')]...||
+...re('[0-9]') [re('^dr')]...||
+...re('[0-9]') [re('^amp')]...||
+...re('[0-9]') [re('^suppos')]...||
+...re('[0-9]') [re('^pill')]...||
+...re('[0-9]') [re('^blister')]...||
+...re('[0-9]') [re('^pastille')]...||
+...re('[0-9]') [re('^spr')]...||
+...re('[0-9]') [re('^tab')]...||
+...re('[0-9]') [re('^millil')]...||
+...re('[0-9]') [re('^gram')]...||
+...re('[0-9]') [re('^microgram')]...||
+...re('[0-9]') [re('^mg')]...||
+...re('[0-9]') [re('^mcg')]...||
+...re('[0-9]') [re('^milligram')]...||
+//...re('[0-9]') [re('^pervagina')]...||
+//...re('[0-9]') [re('^pv')]...||
+...re('[0-9]') [re('^inh')]...||
+...re('[0-9]') [re('^vial')]...||
+...re('[0-9]') [re('^patch')]...||
+...re('[0-9]') [re('^bolus')]...||
+...re('[0-9]') [re('^lozenge')]...||
+...re('[0-9]') [re('^ounce')]...||
+...re('[0-9]') [re('^pack')]...||
+...re('[0-9]') [re('^unit')]...||
+...[@DoseUnit]...;

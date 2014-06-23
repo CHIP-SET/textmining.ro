@@ -1,0 +1,391 @@
+//author:george karystianis - through Irena's previous work
+//date: 29/11/2012
+
+provide 'frequencyphase';
+
+defSpanType DoseUnit =~ trie caps, capsules, cap, capsule, sachet, sachets, drop, drops, dr,drps, drp, ampoule, ampoules, amp, amps, suppositor, suppository, pill, pills, blister, blisters, spray, sprays, tab, tabs, tablets, tablet,puff, puffs,puf, pufs, ml, mls, millilitres, millilitre, grams, gram, gms, g, gm, mcg, microgram, micrograms, micro gram, micro grams, milligram, milligrams, milli gram, milli grams, mg, mgs,unit, units, pre, per rectum, per vagina, pv, inh, capful, vial, vials, patch, patches, bolus, boluses, lozenge, lozenges, milliliter, milliliters, ounce, ounces, pack, packet, pastilles, pastille;
+
+defSpanType meal =~ trie meal, meals, food, breakfast, lunch, dinner, supper, main meal, evening meal;
+
+defDict mealHow = before, after, with, at, qac, between;
+
+defDict dayOfWeek = monday, tuesday, wednesday, thursday, friday, saturday, sunday, mon, tue, tues, wed, thu, thurs, sat, sun;
+
+defDict timeUnit = minute, minutes, min, hour, hours, hrs, hr, day, days, week, weeks, wk, wks, month, months, year, years, midday, yrs, mins, fortnight;
+
+defDict every = a, an, each, every, per;
+
+defDict when = at, in, before, after, during;
+
+defDict time = times, time;
+
+defSpanType period =~ trie morning, evening, afternoon, dawn, dusk, night, noon, eve, mor, teatime, tea time, day, bedtime, am, pm, midday, midnight, morne, nocte, noct, mane, morn, dinner time, dinnertime, lunchtime, lunch time, bed; 
+
+defDict number = one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve,  thirteen,nineteen,fourteen,seventeen,fifteen,sixteen,twenty,1,2,3,4,5,6,7,8,9,10,11, 12, 13, 14, 15, 16,17,18,19,20; 
+
+defDict mini = or, -, to, /;
+
+defDict ordNumber = first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth;
+
+defDict timeUnitLy = hourly, daily, nightly, weekly, wkly, biweekly, monthly, bimonthly, hrly, hly, dly, hy, mnthly, mthly, yearly, yrly, wly, weekley, fortnightly;
+
+defSpanType latin =~ trie qwk, qqh, sid, bis, bd, qad, dieb alt, eod, qh,td, bid, tid, tds, q1h,qhs,qam,qpm,biw, tiw, t.i.w, qd, qid, alt h, opd, om,on, nocte, qds, b.d, s.i.d, q.w.k, q.q.h, b.i.s, b.h, q.a.d, e.o.d, q.h, b.i.d, t.i.d, t.d.s, q.1.h, q.d, q.i.d, o.p.d, o.m, o.n,q.d.s,q.2.h, q2h, qod, q.o.d,q.h.s, q.h, qh, hs, h.s, mane, pm, p.m, bt, b.t, am, a.m, q1d, q.1.d, b.d.s, bds, b.d., s.i.d., q.w.k., q.q.h., b.i.s., b.h., q.a.d., e.o.d., q.h., b.i.d., t.i.d., t.d.s., q.1.h., q.d., q.i.d., o.p.d., o.m., o.n.,q.d.s.,q.2.h.,q.o.d.,q.h.s., q.h.,h.s.,p.m.,b.t., a.m.,q.1.d., b.d.s., q6h, q.6.h., q3h, q4h, q5h, q7h, q8h, q.3.h., q.4.h., q.5.h., q.7.h., q.8.h.;
+
+defDict hour = h, hour, hours;
+
+defDict botheverywhen = at, in, before, after, during,a, an, each, every, per;
+
+defDict dose = dose, doses;
+
+defDict verb = take, insert, suck, inhale, use, instil, inject, add, chew, put;
+
+defDict timeAbbrev = d, h, hs, od, day, week, pm, am, ac, hrs;
+
+defDict dicthours = hours, hour, hrs, hrly;
+
+defSpanType uber_number =:
+...[a(number)]...|| 
+...[a(number) a(mini) a(number)]...;
+
+defSpanType uber_number =:
+...[a(number)]...|| 
+...[re('[0-9]')eq('.')re('[0-9]') a(mini)? re('[0-9]')?eq('.')?re('[0-9]')?]...||
+...[a(number) a(mini) a(number)]...;
+
+defSpanType numberOrInterval =: 
+... [ a(ordNumber) ] ... ||
+... [ re('^[0-9]{1,3}$') ] ... ||
+... [ @uber_number ] ...;
+
+defSpanType times =: 
+... [ eq('once') ] ... ||
+... [ eq('twice') ] ... ||
+... [ eq('thrice') ] ... ||
+... [ eq('up')? eq('to')? eq('upto')? @numberOrInterval a(time) ] ... ; // this could replace the freq and the number of times
+
+defSpanType perTimeUnit =: 
+... [ a(every) @numberOrInterval? any? a(timeUnit) ] ... || 
+... [ @period ] ... || 
+... [ a(every) any? @period ] ... || 
+... [ a(when) any? @period ] ... || 
+... [ @times ] ... || 
+... [ @times a(every)? a(timeUnit) ] ... || 
+... [ @times? a(timeUnitLy) ] ...;
+
+defSpanType freqAbbrevHour =: 
+... [ eq('q') eq('.')? re('^[0-9]{1,3}$') a(hour) eq('.')? ] ... || 
+... [ eq('q') eq('.')? re('^[0-9]{1,3}$') eq('-') re('^[0-9]{1,3}$') a(hour) eq('.')? ] ... || 
+... [ eq('q') eq('.')? @numberOrInterval a(hour) eq('.')? ] ... ;
+
+defSpanType allAbbrev =: 
+... [ @latin ] ... ||
+... [ eq('q') eq('.')? a(timeAbbrev) ] ... ||
+... [ eq('q') eq('-') a(timeAbbrev) ] ... ||
+... [ eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('a.m.') ] ... ||
+... [ eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('p.m.') ] ... ||
+... [ eq('q') eq('.') eq('a') eq('.') eq('c') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('a') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('p') eq('.') eq('m') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('o') eq('.') eq('d') eq('.') ] ... ||
+... [ eq('q') eq('.') eq('h') eq('.') eq('s') eq('.') ] ... ||
+... [ eq('b') eq('.') eq('i') eq('.') eq('w') eq('.') ] ... ||
+... [ eq('q') eq('.')? @numberOrInterval ] ... ||
+... [ eq('q') eq('.')? @numberOrInterval a(timeUnit) ] ... ||
+... [ eq('every') @numberOrInterval a(timeUnit) ] ... ||
+... [ @numberOrInterval eq('per') a(timeUnit) ] ... ||
+... [ eq('q') eqi('.')? @CD ] ... ||
+... [ @freqAbbrevHour ] ... ||
+... [ re('^[btq]{1,1}$') eq('.')? eq('i') eq('.')? eq('d') eq('.')? ] ... ||
+... [ re('^[btq]{1,1}$') eq('.')? eq('d') eq('.')? ] ...;
+
+defSpanType s =: ...[eq('(')eq('s')eq(')')]...;
+
+defSpanType asNeeded =: 
+... [ eq('prn') ] ... ||
+... [ eq('pro re nata') ] ... ||
+... [ eq('sos') ] ... ||
+... [ eq('sit') ] ... ||
+... [ eq('siop') ] ... ||
+... [ eq('si opus sit') ] ... ||
+... [ eq('p') eq('.')? eq('r') eq('.')? eq('n') eq('.')? ] ... ||
+... [ eq('as') eq('needed') ] ...||
+... [ eq('as') eq('required') ] ...||
+... [ eq('as') eq('reqd') ] ...||
+... [ eq('as') eq('req') ] ...||
+... [ eq('as') eq('necessary') ] ...||
+... [ eq('if') eq('needed') ] ...||
+... [ eq('if') eq('required') ] ...||
+... [ eq('if') eq('reqd') ] ...||
+... [ eq('if') eq('req') ] ...||
+... [ eq('if') eq('necessary') ] ...||
+... [ eq('when') eq('needed') ] ...||
+... [ eq('when') eq('req') ] ...||
+... [ eq('when') eq('necessary') ] ...||
+... [ eq('when') eq('reqd') ] ...||
+... [ eq('when') eq('required') ] ...;
+
+defSpanType taken =:
+...[eq('to')eq('be') eq('taken')]...||
+...[eq('to')eq('be') eq('applied')]...||
+...[eq('to')eq('be') eq('used')]...||
+...[eq('to')eq('be') eq('chewed')]...||
+...[eq('to')eq('be') eq('sucked')]...||
+...[eq('to')eq('be') eq('inhaled')]...||
+...[eq('to')eq('be') eq('injected')]...||
+...[eq('to')eq('be') eq('sprayed')]...||
+...[eq('to')eq('be') eq('inserted')]...||
+...[eq('to')eq('be') eq('instilled')]...;
+
+defSpanType dose_frequency =:
+...eq('thisisthebeginning') @uber_number [re('^daily')]...||
+...eq('thisisthebeginning') @uber_number [re('^fortnightly')]...||
+...eq('thisisthebeginning') @uber_number [re('^dly')]...||
+...eq('thisisthebeginning') @uber_number [re('^hrly')]...||
+...eq('thisisthebeginning') @uber_number [re('^hly')]...||
+...eq('thisisthebeginning') @uber_number [re('^weekly')]...||
+...eq('thisisthebeginning') @uber_number [re('^wkly')]...||
+...eq('thisisthebeginning') @uber_number [re('^nightly')]...||
+...eq('thisisthebeginning') @uber_number [re('^hourly')]...||
+...eq('thisisthebeginning') @uber_number [re('^monthly')]...||
+...eq('thisisthebeginning') @uber_number [re('^hy')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('hy')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('daily')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('dly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('weekly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('wkly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('monthly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('hrly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('hly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('nightly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('hourly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('yearly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('yrly')]...||
+...eq('thisisthebeginning') @uber_number? eq('x')?[re('[0-9]')re('fortnightly')]...||
+...eq('thisisthebeginning') @uber_number eq('/') [a(timeUnit)]...||
+
+...eq('thisisthebeginning') @uber_number [re('^qds')]...||
+...eq('thisisthebeginning') @uber_number [re('^qwk')]...||
+...eq('thisisthebeginning') @uber_number [re('^qqh')]...||
+...eq('thisisthebeginning') @uber_number [re('^sid')]...||
+...eq('thisisthebeginning') @uber_number [re('^bd')]...||
+...eq('thisisthebeginning') @uber_number [re('^qad')]...||
+...eq('thisisthebeginning') @uber_number [re('^dieb')]...||
+...eq('thisisthebeginning') @uber_number [re('^eod')]...||
+...eq('thisisthebeginning') @uber_number [re('^qh')]...||
+...eq('thisisthebeginning') @uber_number [re('^td')]...||
+...eq('thisisthebeginning') @uber_number [re('^bd')]...||
+...eq('thisisthebeginning') @uber_number [re('^bid')]...||
+...eq('thisisthebeginning') @uber_number [re('^tid')]...||
+...eq('thisisthebeginning') @uber_number [re('^tds')]...||
+...eq('thisisthebeginning') @uber_number [re('^q1h')]...||
+...eq('thisisthebeginning') @uber_number [re('^qhs')]...||
+...eq('thisisthebeginning') @uber_number [re('^qam')]...||
+...eq('thisisthebeginning') @uber_number [re('^qpm')]...||
+...eq('thisisthebeginning') @uber_number [re('^tiw')]...||
+...eq('thisisthebeginning') @uber_number [re('^t.i.w')]...||
+
+...eq('thisisthebeginning') @uber_number [re('^q3h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q4h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q5h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q6h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q7h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q8h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.3.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.4.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.5.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.6.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.7.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.8.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.3.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.4.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.5.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.6.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.7.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.8.h.')]...||
+
+...eq('thisisthebeginning') @uber_number [re('^qd')]...||
+...eq('thisisthebeginning') @uber_number [re('^on')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.d.s')]...||
+...eq('thisisthebeginning') @uber_number [re('^bds')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.1.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q1d')]...||
+...eq('thisisthebeginning') @uber_number [re('^a.m')]...||
+...eq('thisisthebeginning') @uber_number [re('^am')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.t')]...||
+...eq('thisisthebeginning') @uber_number [re('^bt')]...||
+...eq('thisisthebeginning') @uber_number [re('^pm')]...||
+...eq('thisisthebeginning') @uber_number [re('^p.m')]...||
+...eq('thisisthebeginning') @uber_number [re('^mane')]...||
+...eq('thisisthebeginning') @uber_number [re('^nocte')]...||
+...eq('thisisthebeginning') @uber_number [re('^h.s')]...||
+...eq('thisisthebeginning') @uber_number [re('^hs')]...||
+...eq('thisisthebeginning') @uber_number [re('^qh')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.h.s')]...||
+...eq('thisisthebeginning') @uber_number [re('^alt')]...||
+...eq('thisisthebeginning') @uber_number [re('^opd')]...||
+...eq('thisisthebeginning') @uber_number [re('^om')]...||
+...eq('thisisthebeginning') @uber_number [re('^qds')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^s.i.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.w.k')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.q.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.i.s')]...||
+...eq('thisisthebeginning') @uber_number [re('^qod')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.o.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.2.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^o.n')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.d.s')]...||
+...eq('thisisthebeginning') @uber_number [re('^o.m')]...||
+...eq('thisisthebeginning') @uber_number [re('^o.p.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.i.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.1.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^t.d.s')]...||
+...eq('thisisthebeginning') @uber_number [re('^t.i.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.i.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.h')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.a.d')]...||
+...eq('thisisthebeginning') @uber_number [re('^e.o.d')]...||
+
+...eq('thisisthebeginning') @uber_number [re('^t.i.w.')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.d.s.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.1.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^a.m.')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.t.')]...||
+...eq('thisisthebeginning') @uber_number [re('^p.m.')]...||
+...eq('thisisthebeginning') @uber_number [re('^h.s.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.h.s.')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^s.i.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.w.k.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.q.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.i.s.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.o.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.2.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^o.n.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.d.s.')]...||
+...eq('thisisthebeginning') @uber_number [re('^o.m.')]...||
+...eq('thisisthebeginning') @uber_number [re('^o.p.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.i.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.1.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^t.d.s.')]...||
+...eq('thisisthebeginning') @uber_number [re('^t.i.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.i.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^b.h.')]...||
+...eq('thisisthebeginning') @uber_number [re('^q.a.d.')]...||
+...eq('thisisthebeginning') @uber_number [re('^e.o.d.')]...||
+
+...eq('thisisthebeginning') @numberOrInterval [a(every) @period @uber_number @perTimeUnit]...||
+...eq('thisisthebeginning') [re('[0-9]')eq('.')?re('[0-9]')?re('ml')re('bd')]...||  
+...eq('thisisthebeginning') [re('[0-9]')eq('.')?re('[0-9]')?re('msl')re('bd')]...||
+
+...eq('thisisthebeginning') [@uber_number @perTimeUnit @uber_number @perTimeUnit]...||
+...eq('thisisthebeginning') [@uber_number] @times...||
+...eq('thisisthebeginning') [@uber_number @period eq('and')? @uber_number @period]...||
+...eq('thisisthebeginning') [@uber_number eq('twice') @perTimeUnit]...||
+...eq('thisisthebeginning') [@uber_number eq('once') @perTimeUnit]...||
+...eq('thisisthebeginning') [@uber_number eq('thrice') @perTimeUnit]...||
+...eq('thisisthebeginning') [@uber_number @perTimeUnit eq('to') @uber_number @perTimeUnit]...||
+...eq('thisisthebeginning') [@uber_number @perTimeUnit a(mealHow) @meal]...||
+...eq('thisisthebeginning') @uber_number [@perTimeUnit @uber_number a(every) @period]...||
+...eq('thisisthebeginning') @uber_number [@latin eq('or') @latin]...||
+...eq('thisisthebeginning') @uber_number @asNeeded [@uber_number a(timeUnitLy)]...|| 
+...eq('thisisthebeginning') @uber_number a(mealHow) a(every) [@meal]...||
+
+...eq('thisisthebeginning') [a(time) @uber_number @perTimeUnit]...||
+...eq('thisisthebeginning') a(verb) [@uber_number @period eq('and')? @uber_number @period]...||
+...eq('thisisthebeginning') a(verb) [@uber_number @DoseUnit any{0,2} a(when) any? @period eq('and')? @uber_number a(when) ]...||
+...eq('thisisthebeginning') a(verb) [@uber_number @DoseUnit any{0,2} a(every) any? @period eq('and')? @uber_number a(every)]...||
+...eq('thisisthebeginning') a(verb) [@uber_number any @meal eq('and') @uber_number any @meal]...||
+...eq('thisisthebeginning') a(verb) @uber_number [@numberOrInterval a(timeAbbrev)] ... ||
+...eq('thisisthebeginning') a(verb) @uber_number [@times] a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb) [@period eq('and') @period]...||
+...eq('thisisthebeginning') [a(verb) @period eq('and') @period]...||
+...eq('thisisthebeginning') [a(verb) @uber_number a(timeUnitLy)]...|| 
+...eq('thisisthebeginning') [a(number) a(number) a(time) a(timeUnitLy)]...|| 
+...eq('thisisthebeginning') a(number) [@perTimeUnit]...||
+...eq('thisisthebeginning') a(number) @DoseUnit? [@numberOrInterval a(timeUnitLy)]...||
+
+...eq('thisisthebeginning') a(verb)? [@uber_number any? @meal eq('and') @uber_number any @period? @meal]...||
+...eq('thisisthebeginning') a(verb)? @uber_number? @DoseUnit? @s? [@period eq('and') @period]...|| 
+...eq('thisisthebeginning') a(verb)? @uber_number [a(time) a(number) a(every) @period]...||
+...eq('thisisthebeginning') a(verb)? @uber_number? a(mealHow) a(every) [eq('feed')]...||
+...eq('thisisthebeginning') a(verb)? re('[0-9]')eq('.')?re('[0-9]')? re('ml') [a(mealHow) @meal eq('+')? @period]...||
+...eq('thisisthebeginning') a(verb)? re('[0-9]')eq('.')?re('[0-9]')? re('ml') [a(mealHow) @meal eq('and')? @period]...||
+...eq('thisisthebeginning') a(verb)? re('[0-9]')eq('.')re('[0-9]') [a(number)] eq('x') a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? re('[0-9]')eq('.')re('[0-9]') [a(number)] eq('x') a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] eq('x') a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] eq('x') a(timeUnitLy)...||
+
+...[eq('once') a(mini) eq('twice') a(timeUnitLy)]...||
+...eq('apply') any{0,4} [@times a(mini)? @times?]...||
+...eq('apply') [ @period eq('and') @period ]...||
+
+...[a(number) eq('-') a(number) a(dicthours)]...||
+...[a(number) eq('to') a(number) a(dicthours)]...||
+...[a(number) eq('or') a(number) a(dicthours)]...||
+...[a(number) a(dicthours)]...||
+...[a(number)] eq('x') a(number) eq('x') a(number) a(ml)...||
+...[a(number)] eq('x') a(timeUnitLy)...||
+...[a(number)] eq('x') a(timeUnit)...|| 
+
+...[eq('up')? eq('to')? eq('upto')? re('once|twice') @perTimeUnit]...||
+...[eq('up')? eq('to')? eq('upto')? eq('thrice') @perTimeUnit]...||
+...[eq('up') eq('to') a(every) @numberOrInterval a(timeUnit)]...||
+...[eq('upto') a(every) @numberOrInterval a(timeUnit)]...||
+...[eq('up') eq('to') eq('several')] a(time)...||
+...[eq('up') eq('to') eq('many')] a(time)...||
+
+//2 tabs. 8-hourly as required
+
+...@DoseUnit eq('.')? [a(number) eq('-')? eq('hourly')]...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] re('^hrly')...||
+...eq('thisisthebeginning') a(verb)? a(number) eq('.') a(number) [a(number)] re('^hrly')...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] re('^hly')...||
+...eq('thisisthebeginning') a(verb)? a(number) eq('.') a(number) [a(number)] re('^hly')...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] re('^hourly')...||
+...eq('thisisthebeginning') a(verb)? a(number) eq('.') a(number) [a(number)] re('^hourly')...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') eq('/')? a(every)? @period...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') eq('/')? a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? [@uber_number] eq('x') eq('/')? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] eq('x') eq('/')? a(every)? @period...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] eq('x') eq('/')? a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? a(number) [a(number)] eq('x') eq('/')? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? a(number) eq('.') a(number) [a(number)] eq('x') eq('/')? a(every)? @period...||
+...eq('thisisthebeginning') a(verb)? a(number) eq('.') a(number) [a(number)] eq('x') eq('/')? a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? a(number) eq('.') a(number) [a(number)] eq('x') eq('/')? a(timeUnitLy)...||
+...eq('thisisthebeginning') a(verb)? a(number) [@times a(botheverywhen) @period a(mealHow) @meal eq('and')? a(number) a(botheverywhen) @period]...||
+...eq('thisisthebeginning') a(verb)? a(number) a(mini) a(number) [@times a(botheverywhen) @period a(mealHow) @meal eq('and')? a(number) a(botheverywhen) @period]...||
+...eq('thisisthebeginning') a(verb)? a(every) [a(number)] a(timeUnit)...||
+...eq('thisisthebeginning') a(verb)? a(number) @DoseUnit? @s? [eq('every') eq('2') eq('hrs')]...||
+
+...eq('thisisthebeginning') a(number) @taken? a(when) eq('the')? [@period eq('and') a(when) @period]...||
+//1 or 2 up to four times a day for pain
+...a(number) eq('or') [a(number) eq('up')eq('to') a(number) eq('times')]...||
+...[a(mealHow) @meal eq('and') a(every)? eq('at')? eq('in')? eq('the')? @period]...||
+...[a(every) @period @uber_number a(every) @period]...||
+...a(verb) @uber_number @DoseUnit? [@perTimeUnit]...||
+...a(verb) @uber_number [eq('maximum') @perTimeUnit]...||
+...a(verb) @uber_number [eq('max') @perTimeUnit]...|| 
+...a(verb) @uber_number [@numberOrInterval a(timeUnitLy)]...||
+...a(verb) [@uber_number a(timeUnitLy) eq('or') @times a(timeUnitLy)]...||
+
+...[@uber_number @latin @uber_number @latin]...|| 
+...[@uber_number @perTimeUnit eq('and') @uber_number @perTimeUnit]...||
+...@uber_number @taken? [@numberOrInterval a(timeUnitLy)]...||
+...@uber_number @DoseUnit @taken? @asNeeded? [@numberOrInterval a(timeUnitLy)]...||
+...@DoseUnit [@numberOrInterval a(timeUnitLy)]...||
+...@taken [@perTimeUnit eq('or') @perTimeUnit]...||
+...[@perTimeUnit a(mini) @times a(every) @period]...||
+...[@allAbbrev ] ... ||
+...[@latin eq('/') @latin]...|| 
+...[@perTimeUnit] ... ; 
